@@ -1,0 +1,154 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2709
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{hyphen\}}{\leveltext\leveltemplateid1\'01\uc0\u8259 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{hyphen\}}{\leveltext\leveltemplateid2\'01\uc0\u8259 ;}{\levelnumbers;}\fi-360\li1440\lin1440 }{\listname ;}\listid1}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}}
+\margl1440\margr1440\vieww12280\viewh18400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs28 \cf0 First changed year format using excel\
+\
+-- Top10 batsmen based on past 3 years total runs scored\
+\
+select bat.batsmanName,sum(bat.runs) as Total_runs_scored\
+	FROM fact_bating_summary bat \
+    JOIN dim_match_summary mat\
+		ON bat.match_id = mat.match_id\
+			WHERE YEAR(mat.matchDate) >= "2021"\
+        	GROUP BY bat.batsmanName\
+			ORDER BY sum(bat.runs) desc\
+			LIMIT 10;\
+\
+\
+-- Top10 batsmen based on past 3 years batting average.(min 60 balls faced in each season)\
+\
+-- batting average -> runs/matches\
+select batsmanName, Total_runs_scored/number_of_matches as average_bating \
+ from ( select bat.batsmanName,  sum(bat.runs) as Total_runs_scored, count(mat.match_id) as number_of_matches,sum(if(YEAR(mat.matchDate)="2021",bat.balls,0)) as '2021_balls',sum(if(YEAR(mat.matchDate)="2022",bat.balls,0)) as '2022_balls',sum(if(YEAR(mat.matchDate)="2023",bat.balls,0)) as '2023_balls'\
+	FROM fact_bating_summary bat \
+    JOIN dim_match_summary mat\
+		ON bat.match_id = mat.match_id\
+		WHERE YEAR(mat.matchDate) >= "2021" \
+        GROUP BY bat.batsmanName\
+HAVING sum(if(YEAR(mat.matchDate)="2023",bat.balls,0)) >= 60 AND sum(if(YEAR(mat.matchDate)="2022",bat.balls,0)) >=60 and sum(if(YEAR(mat.matchDate)="2021",bat.balls,0)) >=60 )ipl \
+        Order by average_bating desc\
+        limit 10;\
+\
+-- Top10 batsmen based on  past 3 years strikerate (min 60 balls faced in each season)\
+\
+-- strike rate= runs/balls *100\
+select batsmanName, (Total_runs_scored/Total_balls)*100 as Strike_Rate from\
+(select bat.batsmanName,  sum(bat.runs) as Total_runs_scored, sum(bat.balls) as Total_balls,sum(if(YEAR(mat.matchDate)="2021",bat.balls,0)) as '2021_balls',sum(if(YEAR(mat.matchDate)="2022",bat.balls,0)) as '2022_balls',sum(if(YEAR(mat.matchDate)="2023",bat.balls,0)) as '2023_balls'\
+	FROM fact_bating_summary bat \
+    JOIN dim_match_summary mat\
+		ON bat.match_id = mat.match_id\
+		WHERE YEAR(mat.matchDate) >= "2021" \
+        GROUP BY bat.batsmanName\
+HAVING sum(if(YEAR(mat.matchDate)="2023",bat.balls,0)) >= 60 AND sum(if(YEAR(mat.matchDate)="2022",bat.balls,0)) >=60 and sum(if(YEAR(mat.matchDate)="2021",bat.balls,0)) >=60 )ipl \
+ORDER BY Strike_Rate desc\
+LIMIT 10;\
+\
+\
+-- Top 10 bowlers based on past 3 years economy rate.(min 60 balls bowled in each season)\
+\
+select bowlerName, total_runs/total_overs as economy from\
+(select f_bowl.bowlerName, sum(f_bowl.runs) as total_runs, sum(f_bowl.overs) as total_overs, sum(if(year(d_mat.matchDate)='2021',f_bowl.overs,0)) as "2021_overs",sum(if(year(d_mat.matchDate)='2022' ,f_bowl.overs,0)) as "2022_overs",sum(if(year(d_mat.matchDate)='2023',f_bowl.overs,0)) as  "2023_overs"\
+from fact_bowling_summary f_bowl \
+JOIN dim_match_summary d_mat\
+ON f_bowl.match_id = d_mat.match_id \
+where year(d_mat.matchDate) >='2021'\
+group by f_bowl.bowlerName\
+having sum(if(year(d_mat.matchDate)='2021',f_bowl.overs,0))>= 10 and sum(if(year(d_mat.matchDate)='2022',f_bowl.overs,0))>= 10 and sum(if(year(d_mat.matchDate)='2023',f_bowl.overs,0)) >=10 ) ipl\
+order by economy asc \
+limit 10;\
+\
+-- Top10 bowlers based on past 3 years total wickets taken.\
+\
+select f_bowl.bowlerName, sum(f_bowl.wickets) as Total_wickets\
+ from fact_bowling_summary f_bowl\
+ JOIN dim_match_summary d_mat\
+ ON f_bowl.match_id= d_mat.match_id\
+ WHERE YEAR(d_mat.matchDate)>= "2021"\
+ GROUP BY f_bowl.bowlerName\
+ order BY sum(f_bowl.wickets) desc\
+ limit 10;\
+\
+\
+-- Top10 bowlers based on past 3 years bowling average.(min 60 balls bowled in each season)\
+select bowlerName, total_runs/total_wickets as average from\
+(select f_bowl.bowlerName, sum(f_bowl.runs) as total_runs, sum(f_bowl.wickets) as total_wickets, sum(if(year(d_mat.matchDate)='2021',f_bowl.overs,0)) as "2021_overs",sum(if(year(d_mat.matchDate)='2022' ,f_bowl.overs,0)) as "2022_overs",sum(if(year(d_mat.matchDate)='2023',f_bowl.overs,0)) as  "2023_overs"\
+from fact_bowling_summary f_bowl \
+JOIN dim_match_summary d_mat\
+ON f_bowl.match_id = d_mat.match_id \
+where year(d_mat.matchDate) >='2021'\
+group by f_bowl.bowlerName\
+having sum(if(year(d_mat.matchDate)='2021',f_bowl.overs,0))>= 10 and sum(if(year(d_mat.matchDate)='2022',f_bowl.overs,0))>= 10 and sum(if(year(d_mat.matchDate)='2023',f_bowl.overs,0)) >=10 ) ipl\
+order by average desc \
+limit 10;\
+\
+-- Top 10 bowlers based on past 3 years economy rate.(min 60 balls bowled in each season)\
+\
+select bowlerName, total_runs/total_overs as economy from\
+(select f_bowl.bowlerName, sum(f_bowl.runs) as total_runs, sum(f_bowl.overs) as total_overs, sum(if(year(d_mat.matchDate)='2021',f_bowl.overs,0)) as "2021_overs",sum(if(year(d_mat.matchDate)='2022' ,f_bowl.overs,0)) as "2022_overs",sum(if(year(d_mat.matchDate)='2023',f_bowl.overs,0)) as  "2023_overs"\
+from fact_bowling_summary f_bowl \
+JOIN dim_match_summary d_mat\
+ON f_bowl.match_id = d_mat.match_id \
+where year(d_mat.matchDate) >='2021'\
+group by f_bowl.bowlerName\
+having sum(if(year(d_mat.matchDate)='2021',f_bowl.overs,0))>= 10 and sum(if(year(d_mat.matchDate)='2022',f_bowl.overs,0))>= 10 and sum(if(year(d_mat.matchDate)='2023',f_bowl.overs,0)) >=10 ) ipl\
+order by economy asc \
+limit 10;\
+\
+-- Top5 batsmen based on past 3 years boundary % (fours and sixes).\
+-- boundary % = total number of runs scored through boundaries (4s and 6s)/ total runs scored \
+\
+select batsmanName, (fours*4 +sixes*6)/ run *100 as boundary from\
+(select batsmanName, sum(4s) as fours, sum(6s) as sixes  ,sum(runs) as run\
+	from fact_bating_summary\
+		JOIN dim_match_summary \
+        ON fact_bating_summary.match_id = dim_match_summary.match_id\
+        WHERE YEAR(matchDate) >='2021'\
+        group by batsmanName) ipl\
+        order by boundary desc\
+        limit 5;\
+\
+-- Top5 bowlers based on past 3 years dotball %.\
+\
+-- dotball % -> number of balls for which runs are 0 / total of balls bowled\
+select * from fact_bowling_summary;\
+select bowlerName, ROUND((tot_dot/ball)*100, 2) as boundary from \
+(\
+select bowlerName, sum(0s) as tot_dot  ,sum(overs)*6 as ball\
+	from fact_bowling_summary\
+		JOIN dim_match_summary \
+        ON fact_bowling_summary.match_id = dim_match_summary.match_id\
+        WHERE YEAR(matchDate) >='2021'\
+        group by bowlerName\
+        ) ipl\
+	order by boundary desc\
+	limit 5;\
+\
+-- Top 2 teams with the highest number of wins achieved by chasing targets over the past 3 years.\
+-- by wickets in margin means they are chasing target or bating second.\
+-- by runs they were defending or they were bowling second.\
+\
+SELECT winner, wins_chasing\
+FROM (\
+    SELECT winner, \
+           COUNT(match_id) AS wins_chasing, \
+           DENSE_RANK() OVER (ORDER BY COUNT(match_id) DESC) AS ranking\
+    FROM dim_match_summary \
+    WHERE margin LIKE "%wickets" \
+          AND YEAR(matchDate) >= '2021'\
+    GROUP BY winner\
+) AS ipl\
+WHERE ranking <= 2;\
+\
+Data cleaning : \
+SELECT \
+    overs,(FLOOR(overs) * 6 + ROUND((overs - FLOOR(overs)) * 10)) AS total_balls\
+FROM \
+\pard\tx940\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\li1440\fi-1440\pardirnatural\partightenfactor0
+\ls1\ilvl1\cf0 {\listtext	\uc0\u8259 	}    fact_bowling_summary;\
+}
